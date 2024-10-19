@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url= env("DATABASE_URL")
+}
+
+type CoursesId {
+  title String
+}
+
+type LessonsId {
+  title String
+}
+
+model courses {
+  id          CoursesId   @id @map("_id")
+  title       String
+  description String
+  teacherId   String      @db.ObjectId  // Teacher who created the course
+  modules     modules[]   // Relation to modules
+  enrolledStudents String[] @db.ObjectId // Array of user IDs
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model lessons {
+  id          LessonsId   @id @map("_id")
+  title       String
+  content     String      // Content of the lesson
+  videoURL    String?     // Optional video URL for the lesson
+  quizId      String?     @db.ObjectId  // Optional quiz related to this lesson
+  module      modules     @relation(fields: [moduleId], references: [id]) // Relation to modules
+  moduleId    String      @db.ObjectId  // Foreign key for the related module
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model modules {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  course      courses     @relation(fields: [courseId], references: [id])  // Corrected relation
+  courseId    CoursesId   // Changed to match the type in courses model
+  lessons     lessons[]   // Relation to lessons
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model quizzes {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  lessonId    String      @db.ObjectId // Relation to the lesson
+  questions   Question[]  // Array of quiz questions
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model users {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  email           String      @unique
+  passwordHash    String
+  role            Role        @default(STUDENT)  // User role (student/teacher/admin)
+  enrolledCourses String[]    @db.ObjectId       // Array of course IDs the user is enrolled in
+  completedLessons String[]   @db.ObjectId       // Array of lesson IDs the user has completed
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+type Question {
+  question     String
+  options      String[]  // Array of multiple choice options
+  correctAnswer String
+}
